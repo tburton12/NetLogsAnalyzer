@@ -1,12 +1,22 @@
 import sys
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import QTimer
 from os import listdir, path
 import datetime
 import black_list
+from pathlib import Path
 
-logs_path = "UrlLog"
+def get_log_path():
+    exe_path = sys.executable
+    path = Path(exe_path).parent.parent
+    path = str(path) + "MyPublicWiFi\\UrlLog"
+    print(path)
+    return path
+
+logs_path = get_log_path()
+
+RED_COLOR = QColor(255, 204, 203)
 
 
 class LogsAnalyzer(QWidget):
@@ -17,11 +27,16 @@ class LogsAnalyzer(QWidget):
 
         self.black_listed_ports = QListWidget()
         self.black_listed_mac = QListWidget()
+        self.events_list = ["Integracja w ustawienia routera"]
+
+        self.user_logs_path = None
 
         self.widgets()
         self.layouts()
 
-        self.live_interval = 2000
+        self.default_logs_path = self.find_newest_logs_file()
+
+        self.live_interval = 500
         self.timer = QTimer()
         self.timer.timeout.connect(self.tick)
         self.timer.start(self.live_interval)
@@ -32,8 +47,6 @@ class LogsAnalyzer(QWidget):
         self.ports_cb.addItem("443")
 
         self.setWindowIcon(QIcon('icon.ico'))
-        self.default_logs_path = self.find_newest_logs_file()
-        self.user_logs_path = None
 
         self.load_logs()
 
@@ -83,6 +96,22 @@ class LogsAnalyzer(QWidget):
         self.black_listed_mac_table.setHorizontalHeaderLabels(table_header)
         self.black_listed_mac_count_label = QLabel("0 zdarzeń")
 
+        # Events section
+        self.events_tab = QWidget()
+        self.tabs_widget.addTab(self.events_tab, "Wydarzenia")
+        self.events_cb = QComboBox()
+        for event in self.events_list:
+            self.events_cb.addItem(event)
+
+        self.refresh_events_table_button = QToolButton()
+        self.refresh_events_table_button.setText("Wyświetl")
+        self.refresh_events_table_button.clicked.connect(self.refresh_events_table)
+
+        self.events_table = QTableWidget()
+        self.events_table.setColumnCount(6)
+        self.events_table.setHorizontalHeaderLabels(table_header)
+        self.events_count_label = QLabel("0 zdarzeń")
+
         # --- Menu section --- #
         # Refresh button
 
@@ -102,6 +131,11 @@ class LogsAnalyzer(QWidget):
         self.live_checkbox.setText("Podgląd na żywo")
         self.live_checkbox.setChecked(True)
         self.live_checkbox.stateChanged.connect(self.live_checkbox_clicked)
+
+        # Follow table checkbox
+        self.follow_table_checkbox = QCheckBox()
+        self.follow_table_checkbox.setText("Śledź nowe wydarzenia")
+        self.follow_table_checkbox.setChecked(True)
 
         self.credits_label = QLabel("Twórcy:\nMarek Kopeć\nAdrian Śmiglarski\nPatryk Tracz\nPaweł Wrzesień\nKarol Zuba")
 
@@ -133,6 +167,14 @@ class LogsAnalyzer(QWidget):
         self.black_listed_mac_layout.addWidget(self.black_listed_mac_count_label)
         self.black_listed_mac_tab.setLayout(self.black_listed_mac_layout)
 
+        # --- Events tab - #
+        self.events_layout = QVBoxLayout()
+        self.events_layout.addWidget(self.events_cb)
+        self.events_layout.addWidget(self.refresh_events_table_button)
+        self.events_layout.addWidget(self.events_table)
+        self.events_layout.addWidget(self.events_count_label)
+        self.events_tab.setLayout(self.events_layout)
+
         # --- Right side --- #
         self.right_layout = QVBoxLayout()
         self.right_layout.addStretch()
@@ -140,6 +182,7 @@ class LogsAnalyzer(QWidget):
         self.right_layout.addWidget(self.browse_button)
         self.right_layout.addWidget(self.blacklist_button)
         self.right_layout.addWidget(self.live_checkbox)
+        self.right_layout.addWidget(self.follow_table_checkbox)
         self.right_layout.addStretch()
         self.right_layout.addWidget(self.credits_label)
 
@@ -147,6 +190,50 @@ class LogsAnalyzer(QWidget):
         self.setLayout(self.main_layout)
 
         self.show()
+
+    def refresh_events_table(self):
+        number_of_rows = self.all_events_table.rowCount()
+        table = self.events_table
+
+        # Clear table before loading new data
+        table.setRowCount(0)
+
+        row_pos = 0
+
+        try:
+            for row in range(number_of_rows):
+                date = self.all_events_table.item(row, 0).text()
+                id = self.all_events_table.item(row, 1).text()
+                name = self.all_events_table.item(row, 2).text()
+                mac = self.all_events_table.item(row, 3).text()
+                url = self.all_events_table.item(row, 4).text()
+                port = self.all_events_table.item(row, 5).text()
+
+                if self.events_cb.currentText() == "Integracja w ustawienia routera":
+                    if "http://192.168.2.1/" in url:
+                        row_pos = self.events_table.rowCount()
+                        table.insertRow(row_pos)
+                        table.setItem(row_pos, 0, QTableWidgetItem(date))
+                        table.setItem(row_pos, 1, QTableWidgetItem(id))
+                        table.setItem(row_pos, 2, QTableWidgetItem(name))
+                        table.setItem(row_pos, 3, QTableWidgetItem(mac))
+                        table.setItem(row_pos, 4, QTableWidgetItem(url))
+                        table.setItem(row_pos, 5, QTableWidgetItem(port))
+                        self.set_row_color(table, row_pos, RED_COLOR)
+
+        except Exception as e:
+            print(e)
+
+        try:
+            self.events_count_label.setText(str(table.rowCount()) + " zdarzeń")
+
+        except Exception as e:
+            print(e)
+
+    @staticmethod
+    def set_row_color(table, row_pos, color):
+        for j in range(table.columnCount()):
+            table.item(row_pos, j).setBackground(color)
 
     def blacklist_button_clicked(self):
         try:
@@ -175,12 +262,15 @@ class LogsAnalyzer(QWidget):
         if counter is None:
             counter = self.all_events_count_label
 
-        if self.user_logs_path is not None:
-            file_path = self.user_logs_path
-        elif self.default_logs_path is not None:
-            file_path = self.default_logs_path
-        else:
-            return
+        try:
+            if self.user_logs_path is not None:
+                file_path = self.user_logs_path
+            elif self.default_logs_path is not None:
+                file_path = self.default_logs_path
+            else:
+                return
+        except Exception as e:
+            print(e)
 
         # Clear table before loading new data
         table.setRowCount(0)
@@ -203,13 +293,15 @@ class LogsAnalyzer(QWidget):
                     table.setItem(table_row_position, 4, QTableWidgetItem(url))
                     table.setItem(table_row_position, 5, QTableWidgetItem(port))
 
+                    if "http://192.168.2.1/" in url:
+                        self.set_row_color(table, table_row_position, RED_COLOR)
+
                     table_row_position += 1
 
             except ValueError:
                 print("Unexpected logs format")
 
         counter.setText(str(table_row_position) + " zdarzeń")
-
 
     @staticmethod
     def find_newest_logs_file():
@@ -237,7 +329,7 @@ class LogsAnalyzer(QWidget):
                 except ValueError:
                     pass
 
-        files.sort()
+        files.sort(reverse=True)
 
         # Return None if no path found
         try:
@@ -259,9 +351,13 @@ class LogsAnalyzer(QWidget):
         Sets self.desired_logs_path
         """
         selected_files = QFileDialog.getOpenFileName(self, "Add Media", "", "Text files (*.txt)")
-        self.user_logs_path = selected_files[0]
-
-        self.load_logs()
+        try:
+            self.user_logs_path = selected_files[0]
+            self.load_logs()
+        except IndexError:
+            return
+        except Exception as err:
+            print(err)
 
     def live_checkbox_clicked(self):
         if self.live_checkbox.isChecked():
@@ -271,6 +367,16 @@ class LogsAnalyzer(QWidget):
 
     def tick(self):
         self.load_logs()
+        self.refresh_events_table()
+        self.refresh_mac_table()
+        self.refresh_ports_table()
+        self.load_logs()
+
+        if self.follow_table_checkbox.isChecked():
+            self.black_listed_mac_table.scrollToBottom()
+            self.black_listed_ports_table.scrollToBottom()
+            self.all_events_table.scrollToBottom()
+            self.events_table.scrollToBottom()
 
 
 def main():
