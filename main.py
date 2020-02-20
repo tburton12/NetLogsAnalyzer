@@ -7,12 +7,18 @@ import datetime
 import black_list
 from pathlib import Path
 
+
 def get_log_path():
-    exe_path = sys.executable
-    path = Path(exe_path).parent.parent
-    path = str(path) + "MyPublicWiFi\\UrlLog"
-    print(path)
+    # Prepared for not compiled app run
+    path = "UrlLog"
+
+    # Uncomment below for compiled exe run
+    # exe_path = sys.executable
+    # path = Path(exe_path)
+    # path = str(path) + "\\UrlLog"
+
     return path
+
 
 logs_path = get_log_path()
 
@@ -22,12 +28,12 @@ RED_COLOR = QColor(255, 204, 203)
 class LogsAnalyzer(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Analizer logów")
+        self.setWindowTitle("Logs analyzer")
         self.setGeometry(350, 150, 1000, 600)
 
         self.black_listed_ports = QListWidget()
         self.black_listed_mac = QListWidget()
-        self.events_list = ["Integracja w ustawienia routera"]
+        self.events_list = ["Router address website visited"]
 
         self.user_logs_path = None
 
@@ -55,89 +61,89 @@ class LogsAnalyzer(QWidget):
         self.all_events_tab = QWidget()
         self.all_events_table = QTableWidget()
         self.all_events_table.setColumnCount(6)
-        table_header = ["Data", "ID", "Nazwa", "MAC", "URL", "Port"]
+        table_header = ["Date", "ID", "Name", "MAC", "URL", "Port"]
         self.all_events_table.setHorizontalHeaderLabels(table_header)
-        self.all_events_count_label = QLabel("0 zdarzeń")
+        self.all_events_count_label = QLabel("0 events")
 
         self.tabs_widget = QTabWidget()
         self.all_events_tab = QWidget()
-        self.tabs_widget.addTab(self.all_events_tab, "Wszystkie zdarzenia")
+        self.tabs_widget.addTab(self.all_events_tab, "All events")
 
         # --- Tabs section -- #
         # Followed Ports section
         self.black_listed_ports_tab = QWidget()
-        self.tabs_widget.addTab(self.black_listed_ports_tab, "Czarna lista portów")
+        self.tabs_widget.addTab(self.black_listed_ports_tab, "Black listed ports")
         self.ports_cb = QComboBox()
         for port in range(self.black_listed_ports.count()):
             self.ports_cb.addItem(self.black_listed_ports.item(port))
 
         self.refresh_ports_table_button = QToolButton()
-        self.refresh_ports_table_button.setText("Wyświetl")
+        self.refresh_ports_table_button.setText("Show")
         self.refresh_ports_table_button.clicked.connect(self.refresh_ports_table)
 
         self.black_listed_ports_table = QTableWidget()
         self.black_listed_ports_table.setColumnCount(6)
         self.black_listed_ports_table.setHorizontalHeaderLabels(table_header)
-        self.black_listed_ports_count_label = QLabel("0 zdarzeń")
+        self.black_listed_ports_count_label = QLabel("0 events")
 
         # Black listed MAC section
         self.black_listed_mac_tab = QWidget()
-        self.tabs_widget.addTab(self.black_listed_mac_tab, "Czarna lista MAC")
+        self.tabs_widget.addTab(self.black_listed_mac_tab, "Black listed MACs")
         self.mac_cb = QComboBox()
         for mac in range(self.black_listed_mac.count()):
             self.mac_cb.addItem(self.black_listed_mac.item(mac))
 
         self.refresh_mac_table_button = QToolButton()
-        self.refresh_mac_table_button.setText("Wyświetl")
+        self.refresh_mac_table_button.setText("Show")
         self.refresh_mac_table_button.clicked.connect(self.refresh_mac_table)
 
         self.black_listed_mac_table = QTableWidget()
         self.black_listed_mac_table.setColumnCount(6)
         self.black_listed_mac_table.setHorizontalHeaderLabels(table_header)
-        self.black_listed_mac_count_label = QLabel("0 zdarzeń")
+        self.black_listed_mac_count_label = QLabel("0 events")
 
         # Events section
         self.events_tab = QWidget()
-        self.tabs_widget.addTab(self.events_tab, "Wydarzenia")
+        self.tabs_widget.addTab(self.events_tab, "Events")
         self.events_cb = QComboBox()
         for event in self.events_list:
             self.events_cb.addItem(event)
 
         self.refresh_events_table_button = QToolButton()
-        self.refresh_events_table_button.setText("Wyświetl")
+        self.refresh_events_table_button.setText("Show")
         self.refresh_events_table_button.clicked.connect(self.refresh_events_table)
 
         self.events_table = QTableWidget()
         self.events_table.setColumnCount(6)
         self.events_table.setHorizontalHeaderLabels(table_header)
-        self.events_count_label = QLabel("0 zdarzeń")
+        self.events_count_label = QLabel("0 events")
 
         # --- Menu section --- #
         # Refresh button
 
-        self.refresh_button = QPushButton("Odśwież", self)
+        self.refresh_button = QPushButton("Refresh", self)
         self.refresh_button.clicked.connect(lambda: self.load_logs())
 
         # Browse button
-        self.browse_button = QPushButton("Wybierz plik", self)
+        self.browse_button = QPushButton("Choose file", self)
         self.browse_button.clicked.connect(self.browse_button_clicked)
 
         # Add to black list button
-        self.blacklist_button = QPushButton("Dodaj do czarnej listy", self)
+        self.blacklist_button = QPushButton("Manage black list", self)
         self.blacklist_button.clicked.connect(self.blacklist_button_clicked)
 
         # Live mode
         self.live_checkbox = QCheckBox()
-        self.live_checkbox.setText("Podgląd na żywo")
+        self.live_checkbox.setText("Live mode")
         self.live_checkbox.setChecked(True)
         self.live_checkbox.stateChanged.connect(self.live_checkbox_clicked)
 
         # Follow table checkbox
         self.follow_table_checkbox = QCheckBox()
-        self.follow_table_checkbox.setText("Śledź nowe wydarzenia")
+        self.follow_table_checkbox.setText("Follow new events")
         self.follow_table_checkbox.setChecked(True)
 
-        self.credits_label = QLabel("Twórcy:\nMarek Kopeć\nAdrian Śmiglarski\nPatryk Tracz\nPaweł Wrzesień\nKarol Zuba")
+        self.credits_label = QLabel("Credits:\nPaweł Wrzesień")
 
     def layouts(self):
         self.main_layout = QHBoxLayout()
@@ -196,36 +202,36 @@ class LogsAnalyzer(QWidget):
         table = self.events_table
 
         # Clear table before loading new data
+        # It's obviously not the most efficient way, but it's enough for simple presentation.
         table.setRowCount(0)
 
         row_pos = 0
 
-        try:
-            for row in range(number_of_rows):
+        for row in range(number_of_rows):
+            try:
                 date = self.all_events_table.item(row, 0).text()
                 id = self.all_events_table.item(row, 1).text()
                 name = self.all_events_table.item(row, 2).text()
                 mac = self.all_events_table.item(row, 3).text()
                 url = self.all_events_table.item(row, 4).text()
                 port = self.all_events_table.item(row, 5).text()
+            except AttributeError as err:
+                print(err)
 
-                if self.events_cb.currentText() == "Integracja w ustawienia routera":
-                    if "http://192.168.2.1/" in url:
-                        row_pos = self.events_table.rowCount()
-                        table.insertRow(row_pos)
-                        table.setItem(row_pos, 0, QTableWidgetItem(date))
-                        table.setItem(row_pos, 1, QTableWidgetItem(id))
-                        table.setItem(row_pos, 2, QTableWidgetItem(name))
-                        table.setItem(row_pos, 3, QTableWidgetItem(mac))
-                        table.setItem(row_pos, 4, QTableWidgetItem(url))
-                        table.setItem(row_pos, 5, QTableWidgetItem(port))
-                        self.set_row_color(table, row_pos, RED_COLOR)
-
-        except Exception as e:
-            print(e)
+            if self.events_cb.currentText() == "Router address website visited":
+                if "http://192.168.2.1/" in url:
+                    row_pos = self.events_table.rowCount()
+                    table.insertRow(row_pos)
+                    table.setItem(row_pos, 0, QTableWidgetItem(date))
+                    table.setItem(row_pos, 1, QTableWidgetItem(id))
+                    table.setItem(row_pos, 2, QTableWidgetItem(name))
+                    table.setItem(row_pos, 3, QTableWidgetItem(mac))
+                    table.setItem(row_pos, 4, QTableWidgetItem(url))
+                    table.setItem(row_pos, 5, QTableWidgetItem(port))
+                    self.set_row_color(table, row_pos, RED_COLOR)
 
         try:
-            self.events_count_label.setText(str(table.rowCount()) + " zdarzeń")
+            self.events_count_label.setText(str(table.rowCount()) + " events")
 
         except Exception as e:
             print(e)
@@ -273,6 +279,7 @@ class LogsAnalyzer(QWidget):
             print(e)
 
         # Clear table before loading new data
+        # It's obviously not the most efficient way, but it's enough for simple presentation.
         table.setRowCount(0)
 
         with open(file_path, "r") as f:
@@ -301,7 +308,7 @@ class LogsAnalyzer(QWidget):
             except ValueError:
                 print("Unexpected logs format")
 
-        counter.setText(str(table_row_position) + " zdarzeń")
+        counter.setText(str(table_row_position) + " events")
 
     @staticmethod
     def find_newest_logs_file():
@@ -336,8 +343,8 @@ class LogsAnalyzer(QWidget):
             prepared_path = logs_path + "\\" + files[0] + ".txt"
         except IndexError:
             msg = QMessageBox()
-            msg.setWindowTitle("Brak pliku")
-            msg.setInformativeText("Nie udało się odnaleźć pliku. Proszę wybrać go ręcznie")
+            msg.setWindowTitle("File not found")
+            msg.setInformativeText("File not found. Please choose it manually")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
             return None

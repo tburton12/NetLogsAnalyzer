@@ -9,7 +9,7 @@ class BlackListManager(QWidget):
         # self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setGeometry(600, 300, 350, 300)
         self.setWindowIcon(QIcon('icon.ico'))
-        self.setWindowTitle("Czarna lista")
+        self.setWindowTitle("Black list")
         self.widgets()
         self.layout()
 
@@ -23,15 +23,15 @@ class BlackListManager(QWidget):
         self.mac_text = QLineEdit()
 
         self.add_button = QToolButton()
-        self.add_button.setText("Dodaj")
+        self.add_button.setText("Add")
         self.add_button.clicked.connect(self.add_to_blacklist)
 
         self.remove_button = QToolButton()
-        self.remove_button.setText("Usuń")
+        self.remove_button.setText("Remove")
         self.remove_button.clicked.connect(self.remove_from_blacklist)
 
     def layout(self):
-        self.title = QLabel("Dodaj Port lub MAC do czarnej listy")
+        self.title = QLabel("Add Port or MAC to black list")
 
         self.mainLayout = QVBoxLayout()
         self.mainLayout.addWidget(self.title)
@@ -63,7 +63,7 @@ class BlackListManager(QWidget):
     def remove_from_blacklist(self):
         if self.port_radio.isChecked():
             cr = self.parent.black_listed_ports.currentRow()
-            self.parent.port_cb.removeItem(cr)
+            self.parent.ports_cb.removeItem(cr)
             self.parent.black_listed_ports.takeItem(cr)
         elif self.mac_radio.isChecked():
             cr = self.parent.black_listed_mac.currentRow()
